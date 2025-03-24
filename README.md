@@ -8,7 +8,7 @@ O controle será um conjunto de volante e pedais desenvolvido para facilitar a j
 
 ## Inputs e Outputs
 ### **Entradas (Inputs)**
-- **Volante (analógico) - sensor MUP6050** Virar o carro para direita ou esquerda.
+- **Volante (IMU) - sensor MUP6050** Virar o carro para direita ou esquerda.
 - **Pedal do acelerador (analógico) - potenciômetro** Acelerar.
 - **Pedal do freio (analógico) - potenciômetro** Frear.
 - **4x Entradas Digitais:**
