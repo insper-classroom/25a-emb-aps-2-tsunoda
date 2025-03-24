@@ -28,7 +28,7 @@ O controle será um conjunto de volante e pedais desenvolvido para facilitar a j
 ### **Estrutura Geral**
 ---
 
-![Estrutura](diagrama.jpg)
+![Estrutura](/img/diagrama.jpg)
 
 ---
 
@@ -52,6 +52,6 @@ O controle será um conjunto de volante e pedais desenvolvido para facilitar a j
 ### **Proposta Inicial**
 ---
 
-![Proposta](PropostaControle.png)
+![Proposta](/img/PropostaControle.png)
 
 ---
