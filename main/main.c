@@ -1,137 +1,64 @@
-/*
- * LED blink with FreeRTOS
- */
-#include <FreeRTOS.h>
-#include <task.h>
-#include <semphr.h>
-#include <queue.h>
-
-#include "ssd1306.h"
-#include "gfx.h"
-
-#include "pico/stdlib.h"
 #include <stdio.h>
+#include "pico/stdlib.h"
+#include "hardware/gpio.h"
+#include "hardware/adc.h"
 
-const uint BTN_1_OLED = 28;
-const uint BTN_2_OLED = 26;
-const uint BTN_3_OLED = 27;
+const uint SEL_A_4051 = 13;
+const uint SEL_B_4051 = 12;
+const uint SEL_C_4051 = 11;
+const uint INH_4051   = 10;
 
-const uint LED_1_OLED = 20;
-const uint LED_2_OLED = 21;
-const uint LED_3_OLED = 22;
+void polling_adc_init(void) {
+    gpio_init(SEL_A_4051);
+    gpio_set_dir(SEL_A_4051, GPIO_OUT);
 
-void oled1_btn_led_init(void) {
-    gpio_init(LED_1_OLED);
-    gpio_set_dir(LED_1_OLED, GPIO_OUT);
+    gpio_init(SEL_B_4051);
+    gpio_set_dir(SEL_B_4051, GPIO_OUT);
 
-    gpio_init(LED_2_OLED);
-    gpio_set_dir(LED_2_OLED, GPIO_OUT);
+    gpio_init(SEL_C_4051);
+    gpio_set_dir(SEL_C_4051, GPIO_OUT);
 
-    gpio_init(LED_3_OLED);
-    gpio_set_dir(LED_3_OLED, GPIO_OUT);
-
-    gpio_init(BTN_1_OLED);
-    gpio_set_dir(BTN_1_OLED, GPIO_IN);
-    gpio_pull_up(BTN_1_OLED);
-
-    gpio_init(BTN_2_OLED);
-    gpio_set_dir(BTN_2_OLED, GPIO_IN);
-    gpio_pull_up(BTN_2_OLED);
-
-    gpio_init(BTN_3_OLED);
-    gpio_set_dir(BTN_3_OLED, GPIO_IN);
-    gpio_pull_up(BTN_3_OLED);
+    gpio_init(INH_4051);
+    gpio_set_dir(INH_4051, GPIO_OUT);
+    gpio_put(INH_4051, 1); // desabilita por padrão
 }
 
-void oled1_demo_1(void *p) {
-    printf("Inicializando Driver\n");
-    ssd1306_init();
-
-    printf("Inicializando GLX\n");
-    ssd1306_t disp;
-    gfx_init(&disp, 128, 32);
-
-    printf("Inicializando btn and LEDs\n");
-    oled1_btn_led_init();
-
-    char cnt = 15;
-    while (1) {
-
-        if (gpio_get(BTN_1_OLED) == 0) {
-            cnt = 15;
-            gpio_put(LED_1_OLED, 0);
-            gfx_clear_buffer(&disp);
-            gfx_draw_string(&disp, 0, 0, 1, "LED 1 - ON");
-            gfx_show(&disp);
-        } else if (gpio_get(BTN_2_OLED) == 0) {
-            cnt = 15;
-            gpio_put(LED_2_OLED, 0);
-            gfx_clear_buffer(&disp);
-            gfx_draw_string(&disp, 0, 0, 1, "LED 2 - ON");
-            gfx_show(&disp);
-        } else if (gpio_get(BTN_3_OLED) == 0) {
-            cnt = 15;
-            gpio_put(LED_3_OLED, 0);
-            gfx_clear_buffer(&disp);
-            gfx_draw_string(&disp, 0, 0, 1, "LED 3 - ON");
-            gfx_show(&disp);
-        } else {
-
-            gpio_put(LED_1_OLED, 1);
-            gpio_put(LED_2_OLED, 1);
-            gpio_put(LED_3_OLED, 1);
-            gfx_clear_buffer(&disp);
-            gfx_draw_string(&disp, 0, 0, 1, "PRESSIONE ALGUM");
-            gfx_draw_string(&disp, 0, 10, 1, "BOTAO");
-            gfx_draw_line(&disp, 15, 27, cnt,
-                          27);
-            vTaskDelay(pdMS_TO_TICKS(50));
-            if (++cnt == 112)
-                cnt = 15;
-
-            gfx_show(&disp);
-        }
-    }
-}
-
-void oled1_demo_2(void *p) {
-    printf("Inicializando Driver\n");
-    ssd1306_init();
-
-    printf("Inicializando GLX\n");
-    ssd1306_t disp;
-    gfx_init(&disp, 128, 32);
-
-    printf("Inicializando btn and LEDs\n");
-    oled1_btn_led_init();
-
-    char cnt = 15;
-    while (1) {
-
-        gfx_clear_buffer(&disp);
-        gfx_draw_string(&disp, 0, 0, 1, "Mandioca");
-        gfx_show(&disp);
-        vTaskDelay(pdMS_TO_TICKS(150));
-
-        gfx_clear_buffer(&disp);
-        gfx_draw_string(&disp, 0, 0, 2, "Batata");
-        gfx_show(&disp);
-        vTaskDelay(pdMS_TO_TICKS(150));
-
-        gfx_clear_buffer(&disp);
-        gfx_draw_string(&disp, 0, 0, 4, "Inhame");
-        gfx_show(&disp);
-        vTaskDelay(pdMS_TO_TICKS(150));
-    }
+void select_4051_channel(uint channel) {
+    gpio_put(SEL_A_4051, channel & 0x01);
+    gpio_put(SEL_B_4051, (channel >> 1) & 0x01);
+    gpio_put(SEL_C_4051, (channel >> 2) & 0x01);
 }
 
 int main() {
     stdio_init_all();
 
-    xTaskCreate(oled1_demo_2, "Demo 2", 4095, NULL, 1, NULL);
+    polling_adc_init();
 
-    vTaskStartScheduler();
+    adc_init();
+    adc_gpio_init(27);    // GPIO27 = ADC1
+    adc_select_input(1);  // Canal 1 do ADC
 
-    while (true)
-        ;
+    while (1) {
+        uint16_t acelerador, freio;
+
+        // Canal 0 = Acelerador
+        gpio_put(INH_4051, 1);
+        select_4051_channel(0);
+        sleep_ms(2);
+        gpio_put(INH_4051, 0);
+        sleep_ms(2);
+        acelerador = adc_read();
+
+        // Canal 1 = Freio
+        gpio_put(INH_4051, 1);
+        select_4051_channel(1);
+        sleep_ms(2);
+        gpio_put(INH_4051, 0);
+        sleep_ms(2);
+        freio = adc_read();
+
+        printf("Acelerador: %d\tFreio: %d\n", acelerador, freio);
+
+        sleep_ms(500);
+    }
 }

@@ -69,5 +69,6 @@ void ssd1306_hard_reset(void);
 void ssd1306_write_command(uint8_t command);
 void ssd1306_write_data(uint8_t data);
 void ssd1306_init(void);
+void ssd1306_put_page(uint8_t *data, uint8_t page, uint8_t column, uint8_t width);
 
 #endif // SSD1306_H

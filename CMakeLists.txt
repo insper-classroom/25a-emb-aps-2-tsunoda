@@ -20,6 +20,9 @@ cmake_minimum_required(VERSION 3.12)
 # note: this must happen before project()
 include(pico_sdk_import.cmake)
 
+include_directories(${PICO_SDK_PATH}/src/common/pico_base_headers/include)
+include_directories(${PICO_SDK_PATH}/src/rp2_common/hardware_adc/include)
+
 project(pico_emb)
 
 # initialize the Pico SDK
