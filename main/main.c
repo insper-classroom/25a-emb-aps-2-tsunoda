@@ -119,7 +119,7 @@ void mpu6050_task(void *p) {
         adc.eixo = 0;  // eixo X
 
     // Captura o yaw em graus (invertido porque depende da direção de rotação)
-    float yaw = -euler.angle.yaw;
+    float yaw = -euler.angle.roll;
 
     // Limita yaw entre -135 e 135 graus (saturação)
     if (yaw > 135.0f) yaw = 135.0f;
