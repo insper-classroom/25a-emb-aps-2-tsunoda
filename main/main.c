@@ -3,6 +3,7 @@
 #include <semphr.h>
 #include <queue.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
@@ -23,6 +24,8 @@ SemaphoreHandle_t xSemaphore_up;
 SemaphoreHandle_t xSemaphore_down;
 SemaphoreHandle_t xSemaphore_ovtk;
 SemaphoreHandle_t xSemaphore_drs;
+SemaphoreHandle_t xSemaphore_ovtk_led;
+SemaphoreHandle_t xSemaphore_drs_led;
 
 const int MPU_ADDRESS   = 0x68;
 const int I2C_SDA_GPIO  = 4;
@@ -32,10 +35,12 @@ const int UART_RX_PIN   = 1;
 const int UART_BAUD     = 115200;
 const int UPSHIFT_PIN  = 20;
 const int DOWNSHIFT_PIN = 22;
-const int OVTK_PIN    = 7;
-const int DRS_PIN     = 6;
-const int LED_OVTK_PIN = 16;
-const int LED_DRS_PIN  = 2;
+const int OVTK_PIN_BTN    = 15;
+const int DRS_PIN_BTN     = 6;
+const int LED_OVTK_PIN_R = 14;
+const int LED_OVTK_PIN_G = 13;
+const int LED_DRS_PIN_G  = 17;
+const int LED_DRS_PIN_R  = 18;
 
 void btn_callback(uint gpio, uint32_t events) {
     if (events == 0x4 && gpio == UPSHIFT_PIN) { // fall edge
@@ -44,11 +49,13 @@ void btn_callback(uint gpio, uint32_t events) {
     if (events == 0x4 && gpio == DOWNSHIFT_PIN) { // fall edge
         xSemaphoreGiveFromISR(xSemaphore_down, 0);
     }
-    if (events == 0x4 && gpio == OVTK_PIN) { // fall edge
+    if (events == 0x4 && gpio == OVTK_PIN_BTN) { // fall edge
         xSemaphoreGiveFromISR(xSemaphore_ovtk, 0);
+        xSemaphoreGiveFromISR(xSemaphore_ovtk_led, 0);
     }
-    if (events == 0x4 && gpio == DRS_PIN) { // fall edge
+    if (events == 0x4 && gpio == DRS_PIN_BTN) { // fall edge
         xSemaphoreGiveFromISR(xSemaphore_drs, 0);
+        xSemaphoreGiveFromISR(xSemaphore_drs_led, 0);
     }
 }
 
@@ -123,15 +130,15 @@ void downshift_task(void *p) {
 }
 
 void ovtk_task(void *p) {
-    gpio_init(OVTK_PIN);
-    gpio_set_dir(OVTK_PIN, GPIO_IN);
-    gpio_pull_up(OVTK_PIN);
-    gpio_set_irq_enabled_with_callback(OVTK_PIN, GPIO_IRQ_EDGE_FALL, true,
+    gpio_init(OVTK_PIN_BTN);
+    gpio_set_dir(OVTK_PIN_BTN, GPIO_IN);
+    gpio_pull_up(OVTK_PIN_BTN);
+    gpio_set_irq_enabled_with_callback(OVTK_PIN_BTN, GPIO_IRQ_EDGE_FALL, true,
                                        &btn_callback);
 
     while (true) {
-        if (xSemaphoreTake(xSemaphore_ovtk, pdMS_TO_TICKS(500)) == pdTRUE) {
-            printf("Overtake\n");
+        if (xSemaphoreTake(xSemaphore_ovtk_led, pdMS_TO_TICKS(500)) == pdTRUE) {
+            //printf("Overtake\n");
             adc_t adc;
             adc.eixo = 3;
             adc.valor = 1;
@@ -142,15 +149,15 @@ void ovtk_task(void *p) {
 }
 
 void drs_task(void *p) {
-    gpio_init(DRS_PIN);
-    gpio_set_dir(DRS_PIN, GPIO_IN);
-    gpio_pull_up(DRS_PIN);
-    gpio_set_irq_enabled_with_callback(DRS_PIN, GPIO_IRQ_EDGE_FALL, true,
+    gpio_init(DRS_PIN_BTN);
+    gpio_set_dir(DRS_PIN_BTN, GPIO_IN);
+    gpio_pull_up(DRS_PIN_BTN);
+    gpio_set_irq_enabled_with_callback(DRS_PIN_BTN, GPIO_IRQ_EDGE_FALL, true,
                                        &btn_callback);
 
     while (true) {
-        if (xSemaphoreTake(xSemaphore_drs, pdMS_TO_TICKS(500)) == pdTRUE) {
-            printf("DRS\n");
+        if (xSemaphoreTake(xSemaphore_drs_led, pdMS_TO_TICKS(500)) == pdTRUE) {
+            //printf("DRS\n");
             adc_t adc;
             adc.eixo = 4;
             adc.valor = 1;
@@ -161,27 +168,36 @@ void drs_task(void *p) {
 }
 
 void led_drs_task(void *p) {
-    gpio_init(LED_DRS_PIN);
-    gpio_set_dir(LED_DRS_PIN, GPIO_OUT);
-    gpio_put(LED_DRS_PIN, 1);
+    gpio_init(LED_DRS_PIN_R);
+    gpio_init(LED_DRS_PIN_G);
+    gpio_set_dir(LED_DRS_PIN_R, GPIO_OUT);
+    gpio_set_dir(LED_DRS_PIN_G, GPIO_OUT);
+
     while (1) {
         if (xSemaphoreTake(xSemaphore_drs, pdMS_TO_TICKS(500)) == pdTRUE) {
-            gpio_put(LED_DRS_PIN, 1);
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            gpio_put(LED_DRS_PIN, 0);
+            gpio_put(LED_DRS_PIN_R, 1);
+            gpio_put(LED_DRS_PIN_G, 0);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            gpio_put(LED_DRS_PIN_G, 1);
+            gpio_put(LED_DRS_PIN_R, 0);
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
     }
 }
 
 void led_ovtk_task(void *p) {
-    gpio_init(LED_OVTK_PIN);
-    gpio_set_dir(LED_OVTK_PIN, GPIO_OUT);
-    gpio_put(LED_OVTK_PIN, 1);
+    gpio_init(LED_OVTK_PIN_R);
+    gpio_init(LED_OVTK_PIN_G);
+    gpio_set_dir(LED_OVTK_PIN_R, GPIO_OUT);
+    gpio_set_dir(LED_OVTK_PIN_G, GPIO_OUT);
     while (1) {
         if (xSemaphoreTake(xSemaphore_ovtk, pdMS_TO_TICKS(500)) == pdTRUE) {
-            gpio_put(LED_OVTK_PIN, 1);
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            gpio_put(LED_OVTK_PIN, 0);
+            gpio_put(LED_OVTK_PIN_R, 1);
+            gpio_put(LED_OVTK_PIN_G, 0);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            gpio_put(LED_OVTK_PIN_G, 1);
+            gpio_put(LED_OVTK_PIN_R, 0);
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
     }
 }
@@ -274,6 +290,28 @@ void uart_task(void *p) {
 
     adc_t data;
     while (1) {
+        // *** trata handshake de inicialização ***
+        if (uart_is_readable(uart0)) {
+        uint8_t cmd = uart_getc(uart0);
+        if (cmd == 0xCC) {
+            // pisca 3x
+            for (int i = 0; i < 3; i++) {
+                // LEDs vermelhos acesos
+                gpio_put(LED_OVTK_PIN_R, 1);
+                gpio_put(LED_OVTK_PIN_G, 0);
+                gpio_put(LED_DRS_PIN_R,  1);
+                gpio_put(LED_DRS_PIN_G,  0);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                // LEDs verdes acesos
+                gpio_put(LED_OVTK_PIN_G, 1);
+                gpio_put(LED_OVTK_PIN_R, 0);
+                gpio_put(LED_DRS_PIN_G,  1);
+                gpio_put(LED_DRS_PIN_R,  0);
+                vTaskDelay(pdMS_TO_TICKS(200));
+            }
+        }
+    }
+    
         if (xQueueReceive(xQueueADC, &data, portMAX_DELAY)) {
             uint8_t bytes[4] = {
                 (uint8_t)data.eixo,
@@ -292,6 +330,8 @@ int main() {
     xSemaphore_down = xSemaphoreCreateBinary();
     xSemaphore_ovtk = xSemaphoreCreateBinary();
     xSemaphore_drs = xSemaphoreCreateBinary();
+    xSemaphore_ovtk_led = xSemaphoreCreateBinary();
+    xSemaphore_drs_led = xSemaphoreCreateBinary();
     xQueueADC = xQueueCreate(8, sizeof(adc_t));
     xTaskCreate(mpu6050_task, "MPU6050_Task", 8192, NULL, 1, NULL);
     xTaskCreate(upshift_task, "Upshift_Task", 4096, NULL, 1, NULL);
