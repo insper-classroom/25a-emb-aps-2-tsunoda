@@ -31,7 +31,14 @@ def move_stick_x(axis, value):
     elif axis == 4:
         pyautogui.press('f')
         print(f"drs detected")
-    
+    elif axis == 0x01:  # R2 (acelerador)
+        vjoy_val = map_range(value, 0, 100, 0, 32768)
+        j.set_axis(pyvjoy.HID_USAGE_RZ, vjoy_val)
+        print(f"Acelerador (R2): {value}% -> vJoy: {vjoy_val}")
+    elif axis == 0x02:  # L2 (freio)
+        vjoy_val = map_range(value, 0, 100, 0, 32768)
+        j.set_axis(pyvjoy.HID_USAGE_Z, vjoy_val)
+        print(f"Freio (L2): {value}% -> vJoy: {vjoy_val}")
 
 def controle(ser):
     """Loop principal que lê dados da porta serial."""
