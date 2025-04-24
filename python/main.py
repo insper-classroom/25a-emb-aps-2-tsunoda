@@ -2,6 +2,8 @@ import sys
 import glob
 import serial
 import pyvjoy
+import pyautogui
+pyautogui.PAUSE = 0.0
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -17,6 +19,19 @@ def move_stick_x(axis, value):
         vjoy_val = map_range(value, -127, 127, 0, 32768)
         j.set_axis(pyvjoy.HID_USAGE_X, vjoy_val)
         print(f"Eixo X: {value} -> vJoy: {vjoy_val}")
+    elif axis == 1:
+        pyautogui.press('u')
+        print(f"upshift detected")
+    elif axis == 2:
+        pyautogui.press('d')
+        print(f"downshift detected")
+    elif axis == 3:
+        pyautogui.press('m')
+        print(f"ovtk detected")
+    elif axis == 4:
+        pyautogui.press('f')
+        print(f"drs detected")
+    
 
 def controle(ser):
     """Loop principal que lê dados da porta serial."""
