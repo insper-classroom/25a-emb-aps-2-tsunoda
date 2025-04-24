@@ -1,63 +1,52 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "hardware/gpio.h"
 #include "hardware/adc.h"
 
-const uint SEL_A_4051 = 13;
-const uint SEL_B_4051 = 12;
-const uint SEL_C_4051 = 11;
-const uint INH_4051   = 10;
+#define ADC_MAX 4095
+#define ADC_MIN 0
+#define ACELERADOR_MIN 11
+#define ACELERADOR_MAX 3560
+#define FREIO_MIN 700
+#define FREIO_MAX 2700
 
-void polling_adc_init(void) {
-    gpio_init(SEL_A_4051);
-    gpio_set_dir(SEL_A_4051, GPIO_OUT);
-
-    gpio_init(SEL_B_4051);
-    gpio_set_dir(SEL_B_4051, GPIO_OUT);
-
-    gpio_init(SEL_C_4051);
-    gpio_set_dir(SEL_C_4051, GPIO_OUT);
-
-    gpio_init(INH_4051);
-    gpio_set_dir(INH_4051, GPIO_OUT);
-    gpio_put(INH_4051, 1); // desabilita por padrão
+// Função para mapear valores do ADC para a escala de 0 a 100
+uint8_t map_adc_to_percentage(uint16_t adc_value, uint16_t min, uint16_t max)
+{
+    if (adc_value < min)
+    {
+        return 0;
+    }
+    else if (adc_value > max)
+    {
+        return 100;
+    }
+    return ((adc_value - min) * 100) / (max - min);
 }
 
-void select_4051_channel(uint channel) {
-    gpio_put(SEL_A_4051, channel & 0x01);
-    gpio_put(SEL_B_4051, (channel >> 1) & 0x01);
-    gpio_put(SEL_C_4051, (channel >> 2) & 0x01);
-}
-
-int main() {
+int main()
+{
     stdio_init_all();
 
-    polling_adc_init();
-
     adc_init();
-    adc_gpio_init(27);    // GPIO27 = ADC1
-    adc_select_input(1);  // Canal 1 do ADC
+    adc_gpio_init(26); // GPIO26 = ADC0
+    adc_gpio_init(27); // GPIO27 = ADC1
 
-    while (1) {
-        uint16_t acelerador, freio;
+    while (1)
+    {
+        uint16_t acelerador_raw, freio_raw;
+        uint8_t acelerador, freio;
 
-        // Canal 0 = Acelerador
-        gpio_put(INH_4051, 1);
-        select_4051_channel(0);
-        sleep_ms(2);
-        gpio_put(INH_4051, 0);
-        sleep_ms(2);
-        acelerador = adc_read();
+        // Leitura do freio no ADC0
+        adc_select_input(0);
+        freio_raw = adc_read();
+        freio = map_adc_to_percentage(freio_raw, FREIO_MIN, FREIO_MAX);
 
-        // Canal 1 = Freio
-        gpio_put(INH_4051, 1);
-        select_4051_channel(1);
-        sleep_ms(2);
-        gpio_put(INH_4051, 0);
-        sleep_ms(2);
-        freio = adc_read();
+        // Leitura do acelerador no ADC1
+        adc_select_input(1);
+        acelerador_raw = adc_read();
+        acelerador = map_adc_to_percentage(acelerador_raw, ACELERADOR_MIN, ACELERADOR_MAX);
 
-        printf("Acelerador: %d\tFreio: %d\n", acelerador, freio);
+        printf("Acelerador: %d%% (Raw: %d)\tFreio: %d%% (Raw: %d)\n", acelerador, acelerador_raw, freio, freio_raw);
 
         sleep_ms(500);
     }
