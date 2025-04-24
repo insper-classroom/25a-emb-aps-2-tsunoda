@@ -20,10 +20,10 @@ def move_stick_x(axis, value):
         j.set_axis(pyvjoy.HID_USAGE_X, vjoy_val)
         print(f"Eixo X: {value} -> vJoy: {vjoy_val}")
     elif axis == 1:
-        pyautogui.press('u')
+        pyautogui.press('space')
         print(f"upshift detected")
     elif axis == 2:
-        pyautogui.press('d')
+        pyautogui.press('shift')
         print(f"downshift detected")
     elif axis == 3:
         pyautogui.press('m')
@@ -79,6 +79,7 @@ def conectar_porta(port_name, root, botao_conectar, status_label, mudar_cor_circ
 
     try:
         ser = serial.Serial(port_name, 115200, timeout=1)
+        ser.write(b'\xCC')
         status_label.config(text=f"Conectado em {port_name}", foreground="green")
         mudar_cor_circulo("green")
         botao_conectar.config(text="Conectado")
