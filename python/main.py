@@ -13,25 +13,54 @@ j = pyvjoy.VJoyDevice(1)
 def map_range(valor, in_min, in_max, out_min, out_max):
     return int((valor - in_min) * (out_max - out_min) / (in_max - in_min) + out_min)
 
+import time  # necessário para dar um pequeno delay entre press/release
+
 def move_stick_x(axis, value):
-    """Move o eixo X do vJoy com base nos dados recebidos."""
+    """Move o eixo X do vJoy ou dispara botões com base nos dados recebidos."""
     if axis == 0:
+        # Eixo X analógico
         vjoy_val = map_range(value, -127, 127, 0, 32768)
         j.set_axis(pyvjoy.HID_USAGE_X, vjoy_val)
         print(f"Eixo X: {value} -> vJoy: {vjoy_val}")
-    elif axis == 1:
-        pyautogui.press('space')
-        print(f"upshift detected")
-    elif axis == 2:
-        pyautogui.press('shift')
-        print(f"downshift detected")
-    elif axis == 3:
-        pyautogui.press('m')
-        print(f"ovtk detected")
-    elif axis == 4:
-        pyautogui.press('f')
-        print(f"drs detected")
-    
+
+    elif axis == 1:  # upshift
+        # Pressiona e solta o botão 1 do vJoy
+        j.set_button(1, 1)
+        time.sleep(0.05)
+        j.set_button(1, 0)
+        print("upshift detected (vJoy button 1)")
+
+    elif axis == 2:  # downshift
+        # Botão 2 do vJoy
+        j.set_button(2, 1)
+        time.sleep(0.05)
+        j.set_button(2, 0)
+        print("downshift detected (vJoy button 2)")
+
+    elif axis == 3:  # overtake
+        # Botão 3 do vJoy
+        j.set_button(3, 1)
+        time.sleep(0.05)
+        j.set_button(3, 0)
+        print("ovtk detected (vJoy button 3)")
+
+    elif axis == 4:  # drs
+        # Botão 4 do vJoy
+        j.set_button(4, 1)
+        time.sleep(0.05)
+        j.set_button(4, 0)
+        print("drs detected (vJoy button 4)")
+
+    elif axis == 6:  # R2 (acelerador)
+        vjoy_val = map_range(value, 0, 100, 0, 32768)
+        j.set_axis(pyvjoy.HID_USAGE_RZ, vjoy_val)
+        print(f"Freio: {value}% -> vJoy: {vjoy_val}")
+
+    elif axis == 5:  # L2 (freio)
+        vjoy_val = map_range(value, 0, 100, 0, 32768)
+        j.set_axis(pyvjoy.HID_USAGE_Z, vjoy_val)
+        print(f"Acelerador: {value}% -> vJoy: {vjoy_val}")
+
 
 def controle(ser):
     """Loop principal que lê dados da porta serial."""
